@@ -16,14 +16,9 @@ import (
 )
 
 // $BPF_CLANG and $BPF_CFLAGS are set by the Makefile.
-//go:generate bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS bpf ../bpf/kprobe_percpu.c -- -I../bpf/headers
-
-const mapKey uint32 = 0
+//go:generate bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS bpf ../bpf/commands_percpu.c -- -I../bpf/headers
 
 func main() {
-
-	// Name of the kernel function to trace.
-	fn := "sys_execve"
 
 	// Allow the current process to lock memory for eBPF resources.
 	if err := rlimit.RemoveMemlock(); err != nil {
@@ -37,11 +32,7 @@ func main() {
 	}
 	defer objs.Close()
 
-	// Open a Kprobe at the entry point of the kernel function and attach the
-	// pre-compiled program. Each time the kernel function enters, the program
-	// will increment the execution counter by 1. The read loop below polls this
-	// map value once per second.
-	kp, err := link.Kprobe(fn, objs.KprobeExecve, nil)
+	kp, err := link.Tracepoint("sched", "sched_process_exec", objs.HandleExec, nil)
 	if err != nil {
 		log.Fatalf("opening kprobe: %s", err)
 	}
@@ -55,13 +46,12 @@ func main() {
 	log.Println("Waiting for events..")
 
 	for range ticker.C {
-		var all_cpu_value []uint64
-		if err := objs.KprobeMap.Lookup(mapKey, &all_cpu_value); err != nil {
-			log.Fatalf("reading map: %v", err)
+		log.Printf("**********")
+		iter := objs.ExecStart.Iterate()
+		pid := int32(0)
+		ts := int64(0)
+		for iter.Next(&pid, &ts) {
+			log.Printf("pid %d started at %v", pid, time.Duration(ts))
 		}
-		for cpuid, cpuvalue := range all_cpu_value {
-			log.Printf("%s called %d times on CPU%v\n", fn, cpuvalue, cpuid)
-		}
-		log.Printf("\n")
 	}
 }
