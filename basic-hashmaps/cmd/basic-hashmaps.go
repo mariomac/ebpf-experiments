@@ -8,6 +8,7 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"time"
 
@@ -53,7 +54,7 @@ func main() {
 		command := Filename{}
 		ts := int64(0)
 		for iter.Next(&command, &ts) {
-			log.Printf("pid %s started at %v", string(command[:]), time.Duration(ts))
+			log.Printf("pid %s started at %v", string(command[:bytes.Index(command[:], []byte{0})]), time.Duration(ts))
 		}
 	}
 }
