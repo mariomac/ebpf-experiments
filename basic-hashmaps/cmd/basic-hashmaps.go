@@ -15,6 +15,8 @@ import (
 	"github.com/cilium/ebpf/rlimit"
 )
 
+type Filename [127]byte
+
 // $BPF_CLANG and $BPF_CFLAGS are set by the Makefile.
 //go:generate bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS bpf ../bpf/commands_percpu.c -- -I../bpf/headers
 
@@ -32,7 +34,7 @@ func main() {
 	}
 	defer objs.Close()
 
-	kp, err := link.Tracepoint("sched", "sched_process_exec", objs.HandleExec, nil)
+	kp, err := link.Tracepoint("sched", "sched_process_exec", objs.SchedProcessExec, nil)
 	if err != nil {
 		log.Fatalf("opening kprobe: %s", err)
 	}
@@ -48,10 +50,10 @@ func main() {
 	for range ticker.C {
 		log.Printf("**********")
 		iter := objs.ExecStart.Iterate()
-		pid := int32(0)
+		command := Filename{}
 		ts := int64(0)
-		for iter.Next(&pid, &ts) {
-			log.Printf("pid %d started at %v", pid, time.Duration(ts))
+		for iter.Next(&command, &ts) {
+			log.Printf("pid %s started at %v", string(command[:]), time.Duration(ts))
 		}
 	}
 }

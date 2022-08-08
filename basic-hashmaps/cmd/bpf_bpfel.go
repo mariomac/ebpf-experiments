@@ -54,7 +54,7 @@ type bpfSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type bpfProgramSpecs struct {
-	HandleExec *ebpf.ProgramSpec `ebpf:"handle_exec"`
+	SchedProcessExec *ebpf.ProgramSpec `ebpf:"sched_process_exec"`
 }
 
 // bpfMapSpecs contains maps before they are loaded into the kernel.
@@ -96,12 +96,12 @@ func (m *bpfMaps) Close() error {
 //
 // It can be passed to loadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type bpfPrograms struct {
-	HandleExec *ebpf.Program `ebpf:"handle_exec"`
+	SchedProcessExec *ebpf.Program `ebpf:"sched_process_exec"`
 }
 
 func (p *bpfPrograms) Close() error {
 	return _BpfClose(
-		p.HandleExec,
+		p.SchedProcessExec,
 	)
 }
 
