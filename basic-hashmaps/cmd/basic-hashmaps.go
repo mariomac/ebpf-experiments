@@ -9,7 +9,9 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/cilium/ebpf/link"
@@ -61,13 +63,22 @@ func main() {
 		log.Printf("**********")
 		iter := objs.ExecStart.Iterate()
 		fileName := Filename{}
-		commandCall := CommandCall{}
+		commandCall := []CommandCall{}
 		for iter.Next(&fileName, &commandCall) {
 			if err := objs.ExecStart.Delete(&fileName); err != nil {
 				log.Printf("can't delete %s: %v", fileName, err)
 				continue
 			}
-			log.Printf("%s -> (%s: %d)", fileName, commandCall.Filename, commandCall.Calls)
+			callSum := strings.Builder{}
+			total := uint8(0)
+			for i, cc := range commandCall {
+				if i != 0 {
+					callSum.WriteString(" + ")
+				}
+				callSum.WriteString(fmt.Sprintf("%d", cc.Calls))
+				total += cc.Calls
+			}
+			log.Printf("%s -> %s == %d", fileName, callSum.String(), total)
 		}
 	}
 }

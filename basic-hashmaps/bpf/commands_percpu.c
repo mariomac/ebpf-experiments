@@ -14,7 +14,7 @@ struct command_call {
 };
 
 struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(type, BPF_MAP_TYPE_PERCPU_HASH);
 	__uint(max_entries, 8192);
 	__type(key, char[MAXLEN]);
 	__type(value, struct command_call);
@@ -34,10 +34,18 @@ int sched_process_exec(struct trace_event_raw_sched_process_exec *ctx) {
 	if (cc == NULL) {
 		key.calls = 1;
 		cc = &key;
+		// In the PERCPU case, we need to distinguish between BPF_EXIST and BPF_NOEXIST
+		// insertions, otherwise (using BPF_ANY) for all the cases,
+		// it seems to add some empty key with a previous snapshot of the values
+		// e.g. the Go program prints:
+		// 2022/08/09 16:21:30 **********
+		// 2022/08/09 16:21:30  -> 0 + 0 + 1 + 1 == 2
+		// 2022/08/09 16:21:30 ls -> 0 + 1 + 1 + 1 == 3
+    	bpf_map_update_elem(&exec_start, cc->filename, cc, BPF_NOEXIST);
 	} else {
 		cc->calls++;
+    	bpf_map_update_elem(&exec_start, cc->filename, cc, BPF_EXIST);
 	}
-    bpf_map_update_elem(&exec_start, cc->filename, cc, BPF_ANY);
 
 	return 0;
 }
