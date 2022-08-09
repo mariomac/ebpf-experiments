@@ -13,6 +13,11 @@ import (
 	"github.com/cilium/ebpf"
 )
 
+type bpfCommandCall struct {
+	Filename [127]int8
+	Calls    uint8
+}
+
 // loadBpf returns the embedded CollectionSpec for bpf.
 func loadBpf() (*ebpf.CollectionSpec, error) {
 	reader := bytes.NewReader(_BpfBytes)

@@ -18,6 +18,15 @@ import (
 
 type Filename [127]byte
 
+func (f *Filename) String() string {
+	return string(f[:bytes.Index(f[:], []byte{0})])
+}
+
+type CommandCall struct {
+	Filename Filename
+	Calls    uint8
+}
+
 // $BPF_CLANG and $BPF_CFLAGS are set by the Makefile.
 //go:generate bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS bpf ../bpf/commands_percpu.c -- -I../bpf/headers
 
@@ -51,16 +60,14 @@ func main() {
 	for range ticker.C {
 		log.Printf("**********")
 		iter := objs.ExecStart.Iterate()
-		command := Filename{}
-		calls := int64(0)
-		for iter.Next(&command, &calls) {
-			if err := objs.ExecStart.Delete(&command); err != nil {
-				log.Printf("can't delete %s: %v", command, err)
+		fileName := Filename{}
+		commandCall := CommandCall{}
+		for iter.Next(&fileName, &commandCall) {
+			if err := objs.ExecStart.Delete(&fileName); err != nil {
+				log.Printf("can't delete %s: %v", fileName, err)
 				continue
 			}
-			log.Printf("%v calls: %v",
-				string(command[:bytes.Index(command[:], []byte{0})]),
-				calls)
+			log.Printf("%s -> (%s: %d)", fileName, commandCall.Filename, commandCall.Calls)
 		}
 	}
 }
