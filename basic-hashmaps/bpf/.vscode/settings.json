@@ -1,0 +1,8 @@
+{
+    "files.autoSave": "onFocusChange",
+    "C_Cpp.clang_format_fallbackStyle": "{AllowShortFunctionsOnASingleLine: SFS_None, BasedOnStyle: LLVM, IndentWidth: 4, TabWidth: 4, ColumnLimit: 100}",
+    "files.associations": {
+        "__mutex_base": "c",
+        "__threading_support": "c"
+    },
+}

@@ -43,7 +43,7 @@ func main() {
 
 	// Read loop reporting the total amount of times the kernel
 	// function was entered, once per second.
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
 	log.Println("Waiting for events..")
@@ -52,9 +52,15 @@ func main() {
 		log.Printf("**********")
 		iter := objs.ExecStart.Iterate()
 		command := Filename{}
-		ts := int64(0)
-		for iter.Next(&command, &ts) {
-			log.Printf("pid %s started at %v", string(command[:bytes.Index(command[:], []byte{0})]), time.Duration(ts))
+		calls := int64(0)
+		for iter.Next(&command, &calls) {
+			if err := objs.ExecStart.Delete(&command); err != nil {
+				log.Printf("can't delete %s: %v", command, err)
+				continue
+			}
+			log.Printf("%v calls: %v",
+				string(command[:bytes.Index(command[:], []byte{0})]),
+				calls)
 		}
 	}
 }

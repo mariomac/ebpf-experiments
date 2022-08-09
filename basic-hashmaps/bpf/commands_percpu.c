@@ -21,19 +21,19 @@ struct event {
 
 SEC("tp/sched/sched_process_exec")
 int sched_process_exec(struct trace_event_raw_sched_process_exec *ctx) {
-	/* remember time exec() was executed for this PID */
-	u64 ts;
-	ts = bpf_ktime_get_ns();
-	struct event e;
+	struct event key;
+	if (bpf_get_current_comm(&key.filename, sizeof(key.filename)) != 0) {
+		key.filename[0] = 'E';
+		key.filename[1] = 'R';
+		key.filename[2] = 'R';
+	}
 
-    // TODO: rellenar de ceros el filename?
-	//unsigned fname_off;
-	//fname_off = ctx->__data_loc_filename & 0xFFFF;
-	// fills with zeroes the rest of the string
-	bpf_get_current_comm(&e.filename, sizeof(e.filename));
-	//bpf_probe_read_kernel_str(&e.filename, sizeof(e.filename), (void *)ctx + fname_off);
-
-    bpf_map_update_elem(&exec_start, &e, &ts, BPF_ANY);
+	u64 *calls = bpf_map_lookup_elem(&exec_start, &key);
+	u64 updated_calls = 1;
+	if (calls != NULL) {
+		updated_calls += *calls;
+	}
+    bpf_map_update_elem(&exec_start, &key, &updated_calls, BPF_ANY);
 
 	return 0;
 }
